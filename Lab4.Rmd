@@ -1,0 +1,235 @@
+---
+title: "Lab4"
+author: "Sahil Jain"
+date: "October 28, 2017"
+output: html_document
+---
+
+```{r}
+library(MASS)
+```
+
+Import data
+```{r}
+ForestData <- read.csv("/Users/sahiljain/Desktop/Linear Regression /forestry.csv")
+```
+
+Initializing the variables (response and dependent)
+```{r}
+y <- ForestData$area
+x1 <- ForestData$height
+x2 <- ForestData$caliper
+x3 <- ForestData$htcal
+```
+
+(A) Fit a multiple linear model realting to area to the three explanatory variables listed above and construct the following residuls plot : 
+(i) Studentized Residuals vs Index 
+(ii) Studentized Residuals vs Fitted Values
+(iii) histogram of Studentized residuals
+(iv) QQ-Plot of Studentized Residuals 
+
+Multiple Linear Regression model with area as response variable. 
+```{r}
+model1 <- lm(y ~ x1 + x2 + x3)
+summ <- summary(model1)
+summ
+```
+
+Manually Calculating for studetized residuals 
+```{r}
+Sigma_hat <- summ$sigma
+X <- cbind(rep(1,35), x1, x2, x3)
+H <- X %*% solve(t(X) %*% X) %*% t(X)
+h <- diag(H)
+st_resid <- model1$residuals/(Sigma_hat*sqrt(1-h))
+```
+
+Plotting the residuals plot: 
+
+(i) Studentized residuals vs Index
+
+```{r}
+n <- length(model1$residuals)
+index <- 1:n
+plot(x = index, y = st_resid, col = "black", pch = 16, xlab = "Index", ylab = "Studentized Residuals", main = "Studentized Residuals vs Index")
+abline(h = c(0,3,-3), lty = c(1,2,2), col = "red", lwd = 2)
+```
+
+(ii) Studentized residuals vs Fitted Values
+
+```{r}
+plot(x = model1$fitted.values, y = st_resid, col = "black", pch = 16, xlab = "Fitted Values", ylab = "Studentized Residuals", main = "Studentized Residuals vs Fitted Values")
+abline(h = c(0,3,-3), lty = c(1,2,2), col = "red", lwd = 2)
+```
+
+(iii) Histogram of Studentized Residuals
+
+```{r}
+h <- hist(st_resid, xlab = "Studentized residuals", main = "Histogram of Studentized residuals")
+```
+
+(iv) QQ-Plot of the Studentized residuals
+
+```{r}
+qqnorm(st_resid, pch = 16, main = "QQ-Plot of Studentized Residuals")
+qqline(st_resid, col = "red", lwd = 2)
+```
+
+(B) Based on the plots in (a), answer “Yes” or “No” to the following questions and
+give a one sentence justification.
+
+(i) Do the residuals appear to be independent ? 
+Yes, the residuals appear to be independent in case of Index vs Studentized residuals and in case of the histogram of the studentized residuals. 
+
+(ii) Do the residuals appear to have constant variance. 
+No, If we look at the plot of Studentized residuals vs Fitted values the residuals appear to have follow a non-random pattern which means that they do not have constant variance. 
+
+(iii) Do the residuals appear to be nornally distributed ? 
+No, the residuals do not appear to be normally distributed because QQ-Plot gives an evidence of heavy tailed (right skewed) Distribution. 
+
+(iv) Do the residuals suggest existance of an outlier. 
+Yes, the reiduals do suggest an existance of an outlier becuase if we look at the plots the histogram is normally distibuted where as QQ-Plot of studentized residuals appear to be dependent (light-tailed) and thus giving a small idea about the existance of an outlier. 
+
+(C) Which observation has the largest studentized residual ?
+
+```{r}
+which(st_resid > 3)
+```
+From the code it appears like observation 29 has the largest studentized residual. 
+
+(D) Calculate the leverge for each observation and construst a plot of them vs their index. Which observation have 'high' levarage (i.e., leverage larger than twice the average leverage) ? 
+
+Calculating the levarage. 
+```{r}
+levarage <- hatvalues(model1)
+```
+
+Plot of Levarage vs Index
+```{r}
+plot(y = levarage, x = index, xlab = "Index", ylab = "Hat Values", main = "Levarage")
+abline(h = 2*mean(levarage), col = "red", lty = 2)
+```
+
+Observation with high levarage 
+```{r}
+which(levarage > 2*mean(levarage))
+```
+It appears that observations 1,2,24 and 32 has the high levarage. 
+
+(E)  Calculate Cook’s D-statistic for each observation and construct a plot of them vs.their index. List the top three most influential points.
+ 
+Calculating cooks distance
+```{r}
+CooksDistance <- cooks.distance(model1)
+```
+
+Plot of cooks Distance vs index
+```{r}
+plot(x = index, y = CooksDistance, xlab = "Index", ylab = "Cook's D", main = "Influence")
+abline(h = 0, col = "red", lty = 2)
+```
+
+List the top 3 most influential points
+```{r}
+maxInfluence <- order(cooks.distance(model1), decreasing = TRUE)[1:3]
+maxInfluence
+```
+Most influential points are 10,29,31.
+
+(F) Repeat part (a) but with observation 10 and 29 deleted. 
+
+Deleting the obeservations
+```{r}
+forest_new = ForestData[-c(10,29),]
+```
+
+Repeating part a first by initializing variables. 
+```{r}
+y_2 <- forest_new$area
+x_1_new <- forest_new$height
+x_2_new <- forest_new$caliper
+x_3_new <- forest_new$htcal
+```
+
+Multiple linear regression of the data with deleted observations
+```{r}
+model_new <- lm(y_2 ~ x_1_new + x_2_new + x_3_new)
+summ_new <- summary(model_new)
+summ_new
+```
+
+Manually calculating new Studentized residual. 
+```{r}
+Sigma_new_hat <- summ_new$sigma
+X_new <- cbind(rep(1,33), x_1_new, x_2_new, x_3_new)
+H_new <- X_new %*% solve(t(X_new) %*% X_new) %*% t(X_new)
+h_new <- diag(H_new)
+st_resid_new <- model_new$residuals/(Sigma_new_hat*sqrt(1-h_new))
+```
+
+(i) Studentized Residuals vs Index
+```{r}
+n <- length(model_new$residuals)
+index_new <- 1:n
+plot(x = index_new, y = st_resid_new, col = "black", pch = 16, xlab = "Index", ylab = "Stundetized Residuals", main = "Studentized Residuals vs Index")
+abline(h = c(0,3,-3), lty = c(1,2,2), col = "red", lwd = 2)
+```
+
+(ii) Studentized residual vs Fitted Values
+```{r}
+plot(x = model_new$fitted.values, y = st_resid_new, col = "black", pch = 16, xlab = "Fitted Values", ylab = "Studnetized residuals", main = "Studentized residuals vs Fitted Values")
+abline(h = c(0,3,-3), lty = c(1,2,2), col = "red", lwd = 2)
+```
+
+(iii) Histogram of Studentized residuals
+```{r}
+hist(st_resid_new, xlab = "Studentized residuals", main = "Histogram of Studentized residuals")
+```
+
+(iv) QQ-Plot of studentized residuals 
+```{r}
+qqnorm(st_resid_new, pch = 16, main = "QQ-Plot of Studentized residuals")
+qqline(st_resid_new, col = "red", lwd = 2)
+```
+
+(G)  Consider the plot of the Studentized Residuals vs. Fitted Values from (f). Do these residuals appear to have constant variance? Answer “Yes” or “No” with a
+
+No these residuals do not appear to have a constant variance because these residuals follow a non-random pattern over fitted values giving an evidence that residuals are dependent and thus do not have a constant variance. 
+
+(H) Fit a multiple linear regression model relating log(area) (i.e., the natural logarithm of area) to the three explanatory variables, excluding observations 10 and 29 as you did in (f)
+
+First we will calculate the logrithmic value of the area and then a MLR of log(area) as response variable with respect to new model with observation 10 and 29 deleted. 
+
+Log of area : 
+
+```{r}
+y_3 <- log(y_2) # Here y_3 is the response variable area with respect to log of the area. 
+```
+
+Multiple Linear Regression 
+
+```{r}
+model3 <- lm(y_3 ~ x_1_new + x_2_new + x_3_new)
+summ3 <- summary(model3)
+summ3
+```
+
+(I) Construct a plot of the studentized residuals vs Fitted values for the model in the (h). Does it appear as though the log-transformation has stabilized the variability of the residuals relative to what was observed in (g) ? Which model - the one from (g) or the one from (h) - do feel is the most appropriate ? 
+
+First we will again calculate the Studentized residuals of the new model, but this time we will only plot Studentized Residuals vs Fitted values for the model.  
+
+Studentized Residuals
+```{r}
+Sigma_hat_3 <- summ3$sigma
+X_3 <- cbind(rep(1,33), x_1_new, x_2_new, x_3_new)
+H_3 <- X_3 %*% solve(t(X_3) %*% X_3) %*% t(X_3)
+h_3 <- diag(H_3)
+st_resid_3 <- model3$residuals/(Sigma_hat_3*sqrt(1-h_3))
+```
+
+Plot of the studentized residuals vs fitted values
+```{r}
+plot(x = model3$fitted.values, y = st_resid_3, col = "black", pch = 16, xlab = "Fitted Values", ylab = "Studentized residuals", main = "Studentized residuals vs Fitted Values")
+abline(h = c(0,3,-3), lty = c(1,2,2), col = "red", lwd = 2)
+```
+Yes from the plot it looks like that the log transformation has stablized the variabilityof the residuals related to what we observed in part G. Out of the two models, the linear model with log-transformation is seemingly more appropriate than the other, even though both models excludes the outlier values, but still Log-transformed model is more appropriate. 
